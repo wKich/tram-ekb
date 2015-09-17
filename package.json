@@ -21,5 +21,8 @@
   "scripts": {
     "start": "node bundle.js",
     "postinstall": "webpack"
+  },
+  "engines": {
+    "node": "4.0.x"
   }
 }
