@@ -6,6 +6,7 @@ app.use(express.static('public'))
 app.get('/get/:id', async function (req, res) {
     console.log(' -> Start getting route')
     let data = await tram.getRoute(req.params.id)
+    console.log(' -> Route getted')
     res.send(data)
 })
 

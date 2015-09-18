@@ -10,7 +10,7 @@ module.exports = {
                 loader: 'babel',
                 query: {
                     whitelist: [
-                        //'es6.destructuring',
+                        'es6.destructuring',
                         'asyncToGenerator',
                         'strict'
                     ]
