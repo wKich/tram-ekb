@@ -1,6 +1,11 @@
-//vehicle = [150, 376, 777, 807];
+//vehicle = [150, 376, 591, 777, 807];
 
-setTimeout(function () {
+var socket = io('http://localhost:3000');
+  socket.on('route', function (data) {
+    console.log(data);
+  });
+
+//setTimeout(function () {
     //var req = new XMLHttpRequest();
     //req.open('GET', 'http://edu-ekb.ru/gmap/resources/entities.vgeopoint/mar/,tram_15,');
     //req.setRequestHeader('Accept', 'application/json, text/javascript, */*; q=0.01');
@@ -15,4 +20,4 @@ setTimeout(function () {
     //get ajaxs tram
     //parse
     //print
-}, 5000);
+//}, 5000);
