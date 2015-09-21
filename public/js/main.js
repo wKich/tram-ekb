@@ -1,38 +1,29 @@
-//vehicle = [150, 376, 591, 777, 807];
+var favoriteTrams = [150, 376, 591, 777, 807];
 
 var socket = io('http://localhost:3000');
-socket.on('route', console.log.bind(console));
+var map;
 
 function initMap() {
-  var map = new google.maps.Map(document.getElementById('map'), {
-    center: {lat: -34.397, lng: 150.644},
-    zoom: 8
-  });
+    var markers = [];
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: {lat: 56.833333, lng: 60.583333},
+        zoom: 13
+    });
 
-  var drawingManager = new google.maps.drawing.DrawingManager({
-    drawingMode: google.maps.drawing.OverlayType.MARKER,
-    drawingControl: true,
-    drawingControlOptions: {
-      position: google.maps.ControlPosition.TOP_CENTER,
-      drawingModes: [
-        google.maps.drawing.OverlayType.MARKER,
-        google.maps.drawing.OverlayType.CIRCLE,
-        google.maps.drawing.OverlayType.POLYGON,
-        google.maps.drawing.OverlayType.POLYLINE,
-        google.maps.drawing.OverlayType.RECTANGLE
-      ]
-    },
-    markerOptions: {icon: 'images/beachflag.png'},
-    circleOptions: {
-      fillColor: '#ffff00',
-      fillOpacity: 1,
-      strokeWeight: 5,
-      clickable: false,
-      editable: true,
-      zIndex: 1
-    }
-  });
-  drawingManager.setMap(map);
+    socket.on('route', function(data) {
+        //console.log(data);
+        markers.forEach(function (routeMarkers) { routeMarkers.forEach(function (marker) { marker.setMap(null); marker = null; }); });
+        markers = data.map(function (route) {
+            return route.map(function (tram) {
+                //if (favoriteTrams.indexOf(tram.vehicle) != -1)
+                    return new google.maps.Marker({
+                        position: new google.maps.LatLng(tram.latitude/600000.0, tram.longitude/600000.0),
+                        title: 'Route #' + tram.number + ' tram #' + tram.vehicle,
+                        map: map
+                    });
+            });
+        });
+    });
 }
 
 //setTimeout(function () {
