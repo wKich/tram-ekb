@@ -25,13 +25,11 @@ io.on('connection', (socket) => {
     setInterval(() => {
         return Promise.all(routes.map(async function (number) {
             console.log(` -> Start getting route #${number}`)
-            return {
-                [number]: JSON.parse((await tram.getRoute(number)))
+            return JSON.parse((await tram.getRoute(number)))
                             .map(({latitude, longitude, vehicle}) => {
                                 console.log(` -> Route #${number} with tram #${vehicle} getted`)
-                                return {latitude, longitude, vehicle}
+                                return {number, latitude, longitude, vehicle}
                             })
-            }
         })).then((data) => socket.emit('route', data))
     }, 5000)
 })
