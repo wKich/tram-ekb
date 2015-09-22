@@ -1,7 +1,10 @@
-let tram = require('./tram')()
+let Tram = require('./tram')
 let express = require('express')
 let io = require('socket.io')(3000)
 let app = express()
+
+let routesList = [10, 15]
+let tram = Tram(routesList)
 
 io.on('connection', (socket) => {
     let routes = []
@@ -23,14 +26,7 @@ io.on('connection', (socket) => {
     })
 
     setInterval(() => {
-        return Promise.all(routes.map(async function (number) {
-            console.log(` -> Start getting route #${number}`)
-            return JSON.parse((await tram.getRoute(number)))
-                            .map(({latitude, longitude, vehicle}) => {
-                                console.log(` -> Route #${number} with tram #${vehicle} getted`)
-                                return {number, latitude, longitude, vehicle}
-                            })
-        })).then((data) => socket.emit('route', data))
+        socket.emit('route', tram.getTrams(routes))
     }, 5000)
 })
 

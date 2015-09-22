@@ -11,7 +11,7 @@ let http = require('http')
 //
 //routeNums 1..34
 
-module.exports = () => {
+module.exports = (routes) => {
     //get cookie
     const hostname = 'edu-ekb.ru'
     let trams
@@ -39,7 +39,7 @@ module.exports = () => {
         return _httpRequest({path: '/gmap/', method: 'HEAD'}, (res, callback) => callback(res.headers['set-cookie'][0].split(';', 1)[0]))
     }
 
-    let getRoute = async function (routeNum) {
+    async function _getRoute (routeNum) {
         console.log(' -> Check cookie')
         if (!cookie) {
             cookie = await _getCookie()
@@ -65,7 +65,29 @@ module.exports = () => {
         })
     }
 
+    let getTrams = (routeNumbers) => {
+        let resultTrams = []
+        routeNumbers.forEach((route) => {
+            let index = routes.indexOf(route)
+            if (index != -1) {
+                resultTrams.push(trams[index])
+            }
+        })
+        return resultTrams
+    }
+
+    setInterval(async function () {
+        trams = await Promise.all(routes.map(async function (number) {
+            console.log(` -> Start getting route #${number}`)
+            return JSON.parse((await _getRoute(number)))
+                            .map(({latitude, longitude, vehicle}) => {
+                                console.log(` -> Route #${number} with tram #${vehicle} getted`)
+                                return {number, latitude, longitude, vehicle}
+                            })
+        }))
+    }, 5000)
+
     return {
-        getRoute
+        getTrams
     }
 }
