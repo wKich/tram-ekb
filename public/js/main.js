@@ -5,6 +5,7 @@ var map;
 
 function initMap() {
     var markers = [];
+    var nmarkers = [];
     map = new google.maps.Map(document.getElementById('map'), {
         center: {lat: 56.833333, lng: 60.583333},
         zoom: 13
@@ -23,6 +24,21 @@ function initMap() {
                     });
             });
         });
+    });
+
+    socket.on('number', function(data) {
+      nmarkers.forEach(function (marker) { marker.setMap(null); marker = null; });
+      nmarkers = data.map(function (tram) {
+        return new google.maps.Marker({
+          position: new google.maps.LatLng(tram.latitude/600000, tram.longitude/600000),
+          title: 'Tram #' + tram.vehicle,
+          map: map
+        });
+      });
+    });
+
+    favoriteTrams.forEach(function(tram) {
+      socket.emit('startNumber', tram);
     });
 }
 

@@ -14,7 +14,7 @@ let http = require('http')
 module.exports = (routes) => {
     //get cookie
     const hostname = 'edu-ekb.ru'
-    let trams
+    let trams = []
     let cookie
 
     async function _httpRequest ({
@@ -65,7 +65,7 @@ module.exports = (routes) => {
         })
     }
 
-    let getTrams = (routeNumbers) => {
+    let getTramsByRoutes = (routeNumbers) => {
         let resultTrams = []
         routeNumbers.forEach((route) => {
             let index = routes.indexOf(route)
@@ -74,6 +74,19 @@ module.exports = (routes) => {
             }
         })
         return resultTrams
+    }
+
+    let getTramsByNumbers = (tramNumbers) => {
+      let resultTrams = []
+      tramNumbers.forEach((number) => {
+        let tram
+        trams.forEach((route) => {
+          route.forEach((t) => { if (t.number == number) tram = t })
+        })
+        if (tram)
+          resultTrams.push(tram)
+      })
+      return resultTrams
     }
 
     setInterval(async function () {
@@ -85,9 +98,10 @@ module.exports = (routes) => {
                                 return {number, latitude, longitude, vehicle}
                             })
         }))
-    }, 5000)
+    }, 10000)
 
     return {
-        getTrams
+        getTramsByRoutes,
+        getTramsByNumbers
     }
 }
