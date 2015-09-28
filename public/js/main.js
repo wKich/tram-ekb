@@ -11,6 +11,24 @@ function initMap() {
         zoom: 13
     });
 
+    var myOptions = {
+      disableAutoPan: false,
+      maxWidth: 0,
+      pixelOffset: new google.maps.Size(-75, 5),
+      zIndex: null,
+
+      boxStyle: {
+         opacity: 0.75,
+         width: "120px"
+      },
+      closeBoxURL: "",
+      infoBoxClearance: new google.maps.Size(1, 1),
+      isHidden: false,
+      pane: "floatPane",
+      enableEventPropagation: false
+    };
+    var ib = new InfoBox(myOptions);
+
     socket.on('route', function(data) {
         //console.log(data);
         markers.forEach(function (routeMarkers) { routeMarkers.forEach(function (marker) { marker.setMap(null); marker = null; }); });
@@ -29,17 +47,31 @@ function initMap() {
     socket.on('number', function(data) {
       nmarkers.forEach(function (marker) { marker.setMap(null); marker = null; });
       nmarkers = data.map(function (tram) {
-        return new google.maps.Marker({
+        var m = new google.maps.Marker({
           position: new google.maps.LatLng(tram.latitude/600000, tram.longitude/600000),
           title: 'Tram #' + tram.vehicle,
           map: map
         });
+
+        var boxText = document.createElement("div");
+        boxText.style.cssText = "border: 1px solid black; -moz-border-radius:10px; border-radius: 10px; margin-top: 8px; background: white; padding: 5px;";
+        boxText.innerHTML = "Маршрут "+tram.number+"<BR>Гос.№ "+tram.vehicle;
+        m._infobox = boxText;
+        google.maps.event.addListener(m, 'mouseover', function () {
+          ib.setContent(this._infobox);
+          ib.open(map, this);
+        });
+        google.maps.event.addListener(m, 'mouseout', function () {
+          ib.close();
+        });
+        return m;
       });
     });
 
     favoriteTrams.forEach(function(tram) {
       socket.emit('startNumber', tram);
     });
+    socket.on('error', console.log.bind(console));
 }
 
 //setTimeout(function () {

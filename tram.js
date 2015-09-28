@@ -81,7 +81,7 @@ module.exports = (routes) => {
       tramNumbers.forEach((number) => {
         let tram
         trams.forEach((route) => {
-          route.forEach((t) => { if (t.number == number) tram = t })
+          route.forEach((t) => { if (t.vehicle == number) tram = t })
         })
         if (tram)
           resultTrams.push(tram)
