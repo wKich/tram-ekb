@@ -1,6 +1,6 @@
 var favoriteTrams = [150, 376, 591, 777, 807];
 
-var socket = io('http://localhost:3000');
+var socket = io.connect(window.location.protocol + '//' + window.location.hostname + ':8080');
 var map;
 
 function initMap() {
