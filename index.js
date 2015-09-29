@@ -3,7 +3,7 @@ let express = require('express')
 let app = express()
 var http = require('http').Server(app)
 let io = require('socket.io')(http)
-http.listen(8080)
+http.listen(process.env.PORT || 5000)
 
 let routesList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34]
 let tram = Tram(routesList)
@@ -54,4 +54,4 @@ io.on('connection', (socket) => {
 
 app.use(express.static('public'))
 
-app.listen(process.env.PORT || 5000)
+//app.listen(process.env.PORT || 5000)
