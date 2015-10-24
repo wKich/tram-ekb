@@ -1,5 +1,13 @@
 let http = require('http')
 
+/*
+ * Запписывать данные по ходу движения трамвая на маршруте
+ * Коллекция с маршрутами (конечные точки, координаты остановок, координаты для отрисовки)
+ * Коллекция со статистикой, где каждая запись это массив данных полученных в равные промежутки времени от одной коннечной точки маршрута до другой (кроме этого номер трамвая, маршрут)
+ * Появился новый трамвай, записываем данные в специальный массив до тех пор пока трамвай не достигнет одной из коннечных точек маршрута
+ * При старте трамвая из конечной точки, данные перемещаются в окончательную запись только после того как трамвай достиг другой конечной точки, если трамвай перестал фигурировать в данных до этого момента, то поместить в специальный массив
+ */
+
 //{
 //  "marshrut":"tram_10",
 //  "azimuth":20600,
@@ -15,12 +23,13 @@ module.exports = (routes) => {
     //get cookie
     const hostname = 'edu-ekb.ru'
     let trams = []
+    let routesCoordinatesCache = {}
     let cookie
+    let headers = {}
 
     async function _httpRequest ({
             path = '/',
-            method = 'GET',
-            headers = {}
+            method = 'GET'
         }, callback)
     {
         let options = { hostname, path, method, headers }
@@ -33,29 +42,28 @@ module.exports = (routes) => {
         })
     }
 
-    function _getCookie () {
+    async function _getCookie () {
         console.log(' -> Getting cookie')
         //use find instead of index
-        return _httpRequest({path: '/gmap/', method: 'HEAD'}, (res, callback) => callback(res.headers['set-cookie'][0].split(';', 1)[0]))
+        cookie = await _httpRequest({path: '/gmap/', method: 'HEAD'}, (res, callback) => callback(res.headers['set-cookie'][0].split(';', 1)[0]))
+        headers = {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'Cookie': cookie,
+            'Host': `www.${hostname}`,
+            'Referer': `http://www.${hostname}/gmap/`
+        }
     }
 
     async function _getRoute (routeNum) {
         console.log(' -> Check cookie')
         if (!cookie) {
-            cookie = await _getCookie()
+            await _getCookie()
             console.log(' -> Cookie getted: %s', cookie)
         }
 
         console.log(' -> Getting route')
-        return _httpRequest({
-            path: `/gmap/resources/entities.vgeopoint/mar/,tram_${routeNum},`,
-            headers: {
-                'Accept': 'application/json, text/javascript, */*; q=0.01',
-                'Cookie': cookie,
-                'Host': `www.${hostname}`,
-                'Referer': `http://www.${hostname}/gmap/`
-            }
-        }, (res, callback) => {
+        return _httpRequest({ path: `/gmap/resources/entities.vgeopoint/mar/,tram_${routeNum},`},
+          (res, callback) => {
             let body = ''
             res.setEncoding('utf8')
             res.on('data', (chunk) => {
@@ -63,6 +71,25 @@ module.exports = (routes) => {
             })
             res.on('end', () => callback(body))
         })
+    }
+
+    async function _getCoordinates (routeNum) {
+      console.log(' -> Check cookie')
+      if (!cookie) {
+        await _getCookie()
+        console.log(' -> Cookie getted: %s', cookie)
+      }
+
+      console.log(' -> Getting route')
+      return _httpRequest({ path: `/gmap/resources/entities.marshlatlong/names/${routeNum}/tram`},
+        (res, callback) => {
+          let body = ''
+          res.setEncoding('utf8')
+          res.on('data', (chunk) => {
+            body += chunk
+          })
+          res.on('end', () => callback(body))
+      })
     }
 
     let getTramsByRoutes = (routeNumbers) => {
@@ -89,6 +116,18 @@ module.exports = (routes) => {
       return resultTrams
     }
 
+    let getRouteCoordinates = (routeNumber) => {
+      let coordinates = routesCoordinatesCache[routeNumber]
+      if (!coordinates)
+        return new Promise((resolve, reject) => {
+          _getCoordinates(routeNumber).then(JSON.parse).then((coordinates) => {
+            routesCoordinatesCache[routeNumber] = coordinates
+            resolve(coordinates)
+          })
+        })
+      return coordinates
+    }
+
     setInterval(async function () {
         trams = await Promise.all(routes.map(async function (number) {
             console.log(` -> Start getting route #${number}`)
@@ -102,6 +141,7 @@ module.exports = (routes) => {
 
     return {
         getTramsByRoutes,
-        getTramsByNumbers
+        getTramsByNumbers,
+        getRouteCoordinates
     }
 }

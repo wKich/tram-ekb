@@ -41,9 +41,16 @@ io.on('connection', (socket) => {
     socket.on('stopNumber', async function (number) {
       let index = trams.indexOf(number)
       if (index == -1)
-        return socket.emit('error', 'Don\'t hage that tram number')
+        return socket.emit('error', 'Don\'t have that tram number')
 
       trams.splice(index, 1)
+    })
+
+    socket.on('routeCoordinates', async function (number) {
+      if (number < 1 && number > 34)
+        return socket.emit('error', 'Route number out of range [1, 34]')
+
+      socket.emit('routeCoordinates', await tram.getRouteCoordinates(number))
     })
 
     setInterval(() => {
