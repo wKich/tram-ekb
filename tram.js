@@ -54,7 +54,7 @@ module.exports = (routes) => {
         }
     }
 
-    async function _getRoute (routeNum) {
+    async function _getRoute (routeNums) {
         console.log(' -> Check cookie')
         if (!cookie) {
             await _getCookie()
@@ -62,7 +62,7 @@ module.exports = (routes) => {
         }
 
         console.log(' -> Getting route')
-        return _httpRequest({ path: `/gmap/resources/entities.vgeopoint/mar/,tram_${routeNum},`},
+        return _httpRequest({ path: `/gmap/resources/entities.vgeopoint/mar/,tram_${routeNums.join(',tram_')},`},
           (res, callback) => {
             let body = ''
             res.setEncoding('utf8')
@@ -129,14 +129,14 @@ module.exports = (routes) => {
     }
 
     setInterval(async function () {
-        trams = await Promise.all(routes.map(async function (number) {
-            console.log(` -> Start getting route #${number}`)
-            return JSON.parse((await _getRoute(number)))
-                            .map(({latitude, longitude, vehicle}) => {
-                                console.log(` -> Route #${number} with tram #${vehicle} getted`)
-                                return {number, latitude, longitude, vehicle}
-                            })
-        }))
+      trams = JSON.parse(await _getRoute(routes))
+        .map(({latitude, longitude, marshrut, vehicle}) => {
+          let number = marshrut.slice(5)
+          console.log(` -> Route #${number} with tram #${vehicle} getted`)
+          return {number, latitude, longitude, vehicle}
+        })
+        .reduce((p, v) => p[v.number].push(v), Array.from(routes, () => []))
+      console.log(trams)
     }, 10000)
 
     return {
