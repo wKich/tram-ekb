@@ -136,7 +136,6 @@ module.exports = (routes) => {
           return {number, latitude, longitude, vehicle}
         })
         .reduce((p, v) => p[v.number].push(v), Array.from(routes, () => []))
-      console.log(trams)
     }, 10000)
 
     return {
