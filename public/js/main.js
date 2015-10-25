@@ -6,6 +6,7 @@ var map;
 function initMap() {
     var markers = [];
     var nmarkers = [];
+    var routesPaths = {};
     map = new google.maps.Map(document.getElementById('map'), {
         center: {lat: 56.833333, lng: 60.583333},
         zoom: 13
@@ -53,6 +54,9 @@ function initMap() {
           map: map
         });
 
+        if (!routesPaths[tram.number])
+          socket.emit('routeCoordinates', tram.number);
+
         var boxText = document.createElement("div");
         boxText.style.cssText = "border: 1px solid black; -moz-border-radius:10px; border-radius: 10px; margin-top: 8px; background: white; padding: 5px;";
         boxText.innerHTML = "Маршрут "+tram.number+"<BR>Гос.№ "+tram.vehicle;
@@ -66,6 +70,26 @@ function initMap() {
         });
         return m;
       });
+    });
+
+    socket.on('routeCoordinates', function (routePath) {
+      if (routesPaths[routePath.number])
+        return;
+
+      Math.seedrandom(routePath.number)
+      var r = Math.floor(Math.random() * 256).toString(16)
+      var g = Math.floor(Math.random() * 256).toString(16)
+      var b = Math.floor(Math.random() * 256).toString(16)
+      if (r.length == 1) r = '0' + r;
+      if (g.length == 1) g = '0' + g;
+      if (b.length == 1) b = '0' + b;
+      routesPaths[routePath.number] = new google.maps.Polyline({
+        path: routePath.path.map(function (point) { return new google.maps.LatLng(point.latitude, point.longitude)}),
+        strokeColor: '#'+r+g+b,
+        strokeOpacity: 0.8,
+        strokeWeight: 4
+      });
+      routesPaths[routePath.number].setMap(map);
     });
 
     favoriteTrams.forEach(function(tram) {
