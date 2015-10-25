@@ -135,7 +135,7 @@ module.exports = (routes) => {
           console.log(` -> Route #${number} with tram #${vehicle} getted`)
           return {number, latitude, longitude, vehicle}
         })
-        .reduce((p, v) => p[v.number].push(v), Array.from(routes, () => []))
+        .reduce((p, v) => { p[v.number-1].push(v); return p; }, Array.from(routes, () => []))
     }, 10000)
 
     return {

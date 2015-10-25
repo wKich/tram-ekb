@@ -50,7 +50,7 @@ io.on('connection', (socket) => {
       if (number < 1 && number > 34)
         return socket.emit('error', 'Route number out of range [1, 34]')
 
-      socket.emit('routeCoordinates', await tram.getRouteCoordinates(number))
+      socket.emit('routeCoordinates', {number, path: await tram.getRouteCoordinates(number)})
     })
 
     setInterval(() => {
