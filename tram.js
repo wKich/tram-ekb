@@ -1,4 +1,5 @@
 let http = require('http')
+let mongo = require('mongodb')
 
 /*
  * Запписывать данные по ходу движения трамвая на маршруте
@@ -22,10 +23,28 @@ let http = require('http')
 module.exports = (routes) => {
     //get cookie
     const hostname = 'edu-ekb.ru'
+    let routesCollection
+    let dataCollection
     let trams = []
-    let routesCoordinatesCache = {}
     let cookie
     let headers = {}
+
+    console.log(` -> Connecting to mongoDB`)
+    mongo.MongoClient.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB_NAME}`)
+      .then(async function (db) {
+        routesCollection = db.collection('routes')
+        dataCollection = db.collection('data')
+
+        console.log(' -> Check cookie')
+        if (!cookie) {
+            await _getCookie()
+            console.log(' -> Cookie getted: %s', cookie)
+        }
+        try {
+          await _updateRoutesCoordinates()
+        } catch (err) { console.log(err.message) }
+    })
+      .catch((err) => console.log(` -> Failed to connect to mongoDB: ${err.message}`))
 
     async function _httpRequest ({
             path = '/',
@@ -92,6 +111,33 @@ module.exports = (routes) => {
       })
     }
 
+    async function _updateRoutesCoordinates () {
+      console.log(` -> Updating routes coordinates`)
+      let routesCoordinates = (
+        await Promise.all(
+          routes.map(_getCoordinates)
+        ))
+        .map(JSON.parse)
+        .reduce((p, v, i) => {
+          p[i + 1] = v
+          return p
+        }, {})
+      let dbRoutes = (await routesCollection.find({}).toArray()).reduce((p, v) => { p[v.route] = v.coordinates; return p; }, {})
+      for (let route in routesCoordinates) {
+        console.log(` -> Compare route coordinates for route ${route}`)
+        if (!dbRoutes[route] ||
+            !dbRoutes[route].every((coordinate, index) => {
+              let flag = true
+              for (key in coordinate) {
+                if (routesCoordinates[route][key] != coordinate[key])
+                  flag = false
+              }
+              return flag
+            }))
+          await routesCollection.updateOne({ route }, { $set: { coordinates: routesCoordinates[route] } }, { upsert: true })
+      }
+    }
+
     let getTramsByRoutes = (routeNumbers) => {
         let resultTrams = []
         routeNumbers.forEach((route) => {
@@ -117,15 +163,12 @@ module.exports = (routes) => {
     }
 
     let getRouteCoordinates = (routeNumber) => {
-      let coordinates = routesCoordinatesCache[routeNumber]
-      if (!coordinates)
-        return new Promise((resolve, reject) => {
-          _getCoordinates(routeNumber).then(JSON.parse).then((coordinates) => {
-            routesCoordinatesCache[routeNumber] = coordinates
-            resolve(coordinates)
-          })
-        })
-      return coordinates
+      return new Promise((resolve, reject) => {
+        if (routesCollection)
+          routesCollection.find({ route: routeNumber }).limit(1).next().then(({coordinates}) => resolve(coordinates))
+        else
+          reject(new Error(`DB is unavailable`))
+      })
     }
 
     setInterval(async function () {
@@ -137,6 +180,8 @@ module.exports = (routes) => {
         })
         .reduce((p, v) => { p[v.number-1].push(v); return p; }, Array.from(routes, () => []))
     }, 10000)
+
+    setInterval(_updateRoutesCoordinates, 1000*60*60*24)
 
     return {
         getTramsByRoutes,
