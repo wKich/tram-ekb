@@ -1,5 +1,5 @@
-let http = require('http')
-let mongo = require('mongodb')
+import http from 'http'
+import { MongoClient } from 'mongodb'
 
 /*
  * Запписывать данные по ходу движения трамвая на маршруте
@@ -20,7 +20,7 @@ let mongo = require('mongodb')
 //
 //routeNums 1..34
 
-module.exports = (routes) => {
+export default (routes) => {
     //get cookie
     const hostname = 'edu-ekb.ru'
     let routesCollection
@@ -30,7 +30,7 @@ module.exports = (routes) => {
     let headers = {}
 
     console.log(` -> Connecting to mongoDB`)
-    mongo.MongoClient.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB_NAME}`)
+    MongoClient.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB_NAME}`)
       .then(async function (db) {
         routesCollection = db.collection('routes')
         dataCollection = db.collection('data')
@@ -128,7 +128,7 @@ module.exports = (routes) => {
         if (!dbRoutes[route] ||
             !dbRoutes[route].every((coordinate, index) => {
               let flag = true
-              for (key in coordinate) {
+              for (let key in coordinate) {
                 if (routesCoordinates[route][key] != coordinate[key])
                   flag = false
               }
