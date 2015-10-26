@@ -23,7 +23,8 @@ import { MongoClient } from 'mongodb'
 export default (routes) => {
   let routesCollection
   let dataCollection
-  let trams = []
+  let tramsByNumber = {}
+  let tramsByRoute = {}
 
   console.log(` -> Connecting to mongoDB`)
   MongoClient.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB_NAME}`)
@@ -63,29 +64,8 @@ export default (routes) => {
     }
   }
 
-  let getTramsByRoutes = (routeNumbers) => {
-    let resultTrams = []
-    routeNumbers.forEach((route) => {
-      let index = routes.indexOf(route)
-      if (index != -1) {
-        resultTrams.push(trams[index])
-      }
-    })
-    return resultTrams
-  }
-
-  let getTramsByNumbers = (tramNumbers) => {
-    let resultTrams = []
-    tramNumbers.forEach((number) => {
-      let tram
-      trams.forEach((route) => {
-        route.forEach((t) => { if (t.vehicle == number) tram = t })
-      })
-      if (tram)
-        resultTrams.push(tram)
-    })
-    return resultTrams
-  }
+  let getTramsByRoutes = (routeNumbers) => routeNumbers.map((route) => tramsByRoute[route])
+  let getTramsByNumbers = (tramNumbers) => tramNumbers.map((number) => tramsByNumber[number])
 
   let getRouteCoordinates = (routeNumber) => {
     return new Promise((resolve, reject) => {
@@ -97,14 +77,14 @@ export default (routes) => {
   }
 
   setInterval(async function () {
-    trams = JSON.parse(await eduekb.getRoutes(routes))
+    let trams = JSON.parse(await eduekb.getRoutes(routes))
       .map(({latitude, longitude, marshrut, vehicle}) => {
-        let number = marshrut.slice(5)
-        console.log(` -> Route #${number} with tram #${vehicle} getted`)
-        return {number, latitude, longitude, vehicle}
+        let route = marshrut.slice(5)
+        return {route, latitude, longitude, vehicle}
       })
-      .reduce((p, v) => { p[v.number-1].push(v); return p; }, Array.from(routes, () => []))
-  }, 10000)
+    tramsByNumber = trams.reduce((p, v) => { p[v.vehicle] = v; return p; }, {})
+    tramsByRoute = trams.reduce((p, v) => { if (!p[v.route]) p[v.route] = []; p[v.route].push(v); return p }, {})
+  }, 5000)
 
   setInterval(_updateRoutesCoordinates, 1000*60*60*24)
 

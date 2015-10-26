@@ -31,35 +31,38 @@ function initMap() {
     var ib = new InfoBox(myOptions);
 
     socket.on('route', function(data) {
-        //console.log(data);
-        markers.forEach(function (routeMarkers) { routeMarkers.forEach(function (marker) { marker.setMap(null); marker = null; }); });
-        markers = data.map(function (route) {
-            return route.map(function (tram) {
-                //if (favoriteTrams.indexOf(tram.vehicle) != -1)
-                    return new google.maps.Marker({
-                        position: new google.maps.LatLng(tram.latitude/600000.0, tram.longitude/600000.0),
-                        title: 'Route #' + tram.number + ' tram #' + tram.vehicle,
-                        map: map
-                    });
-            });
+      markers.forEach(function (routeMarkers) { if (routeMarkers) routeMarkers.forEach(function (marker) { marker.setMap(null); marker = null; }); });
+      markers = data.map(function (route) {
+        if (!route)
+          return null
+        return route.map(function (tram) {
+          return new google.maps.Marker({
+            position: new google.maps.LatLng(tram.latitude/600000.0, tram.longitude/600000.0),
+            title: 'Route #' + tram.route + ' tram #' + tram.vehicle,
+            map: map
+          });
         });
+      });
     });
 
     socket.on('number', function(data) {
-      nmarkers.forEach(function (marker) { marker.setMap(null); marker = null; });
+      nmarkers.forEach(function (marker) { if (marker) marker.setMap(null); marker = null; });
       nmarkers = data.map(function (tram) {
+        if (!tram)
+          return null;
+
         var m = new google.maps.Marker({
           position: new google.maps.LatLng(tram.latitude/600000, tram.longitude/600000),
           title: 'Tram #' + tram.vehicle,
           map: map
         });
 
-        if (!routesPaths[tram.number])
-          socket.emit('routeCoordinates', tram.number);
+        if (!routesPaths[tram.route])
+          socket.emit('routeCoordinates', tram.route);
 
         var boxText = document.createElement("div");
         boxText.style.cssText = "border: 1px solid black; -moz-border-radius:10px; border-radius: 10px; margin-top: 8px; background: white; padding: 5px;";
-        boxText.innerHTML = "Маршрут "+tram.number+"<BR>Гос.№ "+tram.vehicle;
+        boxText.innerHTML = "Маршрут "+tram.route+"<BR>Гос.№ "+tram.vehicle;
         m._infobox = boxText;
         google.maps.event.addListener(m, 'mouseover', function () {
           ib.setContent(this._infobox);
