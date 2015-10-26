@@ -1,4 +1,4 @@
-import http from 'http'
+import eduekb from './edu-ekb'
 import { MongoClient } from 'mongodb'
 
 /*
@@ -21,12 +21,9 @@ import { MongoClient } from 'mongodb'
 //routeNums 1..34
 
 export default (routes) => {
-  const hostname = 'edu-ekb.ru'
   let routesCollection
   let dataCollection
   let trams = []
-  let cookie
-  let headers = {}
 
   console.log(` -> Connecting to mongoDB`)
   MongoClient.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB_NAME}`)
@@ -34,87 +31,16 @@ export default (routes) => {
       routesCollection = db.collection('routes')
       dataCollection = db.collection('data')
 
-      console.log(' -> Check cookie')
-      if (!cookie) {
-        await _getCookie()
-        console.log(' -> Cookie getted: %s', cookie)
-      }
-      try {
-        await _updateRoutesCoordinates()
-      } catch (err) { console.log(err.message) }
+      await eduekb.getCookie()
+      await _updateRoutesCoordinates()
   })
     .catch((err) => console.log(` -> Failed to connect to mongoDB: ${err.message}`))
-
-  async function _httpRequest ({
-      path = '/',
-      method = 'GET'
-    }, callback)
-  {
-    let options = { hostname, path, method, headers }
-    console.log(` -> Making ${method} request http://${hostname}${path}`)
-    return new Promise((resolve, reject) => {
-      let req = http.request(options, (res) => callback(res, resolve))
-      req.on('error', reject)
-      req.write('')
-      req.end()
-    })
-  }
-
-  async function _getCookie () {
-    console.log(' -> Getting cookie')
-    //use find instead of index
-    cookie = await _httpRequest({path: '/gmap/', method: 'HEAD'}, (res, callback) => callback(res.headers['set-cookie'][0].split(';', 1)[0]))
-    headers = {
-      'Accept': 'application/json, text/javascript, */*; q=0.01',
-      'Cookie': cookie,
-      'Host': `www.${hostname}`,
-      'Referer': `http://www.${hostname}/gmap/`
-    }
-  }
-
-  async function _getRoute (routeNums) {
-    console.log(' -> Check cookie')
-    if (!cookie) {
-      await _getCookie()
-      console.log(' -> Cookie getted: %s', cookie)
-    }
-
-    console.log(' -> Getting route')
-    return _httpRequest({ path: `/gmap/resources/entities.vgeopoint/mar/,tram_${routeNums.join(',tram_')},`},
-      (res, callback) => {
-        let body = ''
-        res.setEncoding('utf8')
-        res.on('data', (chunk) => {
-          body += chunk
-        })
-        res.on('end', () => callback(body))
-    })
-  }
-
-  async function _getCoordinates (routeNum) {
-    console.log(' -> Check cookie')
-    if (!cookie) {
-      await _getCookie()
-      console.log(' -> Cookie getted: %s', cookie)
-    }
-
-    console.log(' -> Getting route')
-    return _httpRequest({ path: `/gmap/resources/entities.marshlatlong/names/${routeNum}/tram`},
-      (res, callback) => {
-        let body = ''
-        res.setEncoding('utf8')
-        res.on('data', (chunk) => {
-          body += chunk
-        })
-        res.on('end', () => callback(body))
-    })
-  }
 
   async function _updateRoutesCoordinates () {
     console.log(` -> Updating routes coordinates`)
     let routesCoordinates = (
       await Promise.all(
-        routes.map(_getCoordinates)
+        routes.map(eduekb.getCoordinates)
       ))
       .map(JSON.parse)
       .reduce((p, v, i) => {
@@ -171,7 +97,7 @@ export default (routes) => {
   }
 
   setInterval(async function () {
-    trams = JSON.parse(await _getRoute(routes))
+    trams = JSON.parse(await eduekb.getRoutes(routes))
       .map(({latitude, longitude, marshrut, vehicle}) => {
         let number = marshrut.slice(5)
         console.log(` -> Route #${number} with tram #${vehicle} getted`)
