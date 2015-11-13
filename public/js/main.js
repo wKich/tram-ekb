@@ -1,4 +1,4 @@
-var favoriteTrams = [150, 376, 591, 777, 807, 980, 991];
+var favoriteTrams = [150, 376, 591, 777, 807, 980, 981, 991];
 
 var socket = io.connect(location.origin.replace(/^http/, 'ws'));
 var map;
